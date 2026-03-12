@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mars</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:      #070d14;
+    --surface: #0d1a27;
+    --surf2:   #112233;
+    --border:  #1e3448;
+    --text:    #c8dff0;
+    --muted:   #4a6a84;
+    --accent:  #00c2ff;
+    --gold:    #ffc947;
+    --green:   #06d6a0;
+    --radius:  10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    min-height: 100vh; overflow-x: hidden;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,194,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,194,255,.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+  .wrap { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  /* HEADER */
+  .header {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    margin-bottom: 24px; padding-bottom: 20px;
+    border-bottom: 1px solid var(--border); gap: 16px; flex-wrap: wrap;
+  }
+  .header h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 32px; font-weight: 800; text-transform: uppercase; line-height: 1; color: #fff;
+  }
+  .header h1 span { color: var(--accent); }
+  .header p { color: var(--muted); font-size: 11px; margin-top: 4px; letter-spacing: .8px; text-transform: uppercase; }
+  .brand-badge {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px; font-weight: 700; padding: 6px 20px;
+    border-radius: 6px; letter-spacing: 1px; border: 2px solid transparent;
+    transition: all .3s ease; white-space: nowrap;
+  }
+
+  /* BRAND BUTTONS */
+  .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+  .btn-brand {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+    padding: 8px 16px; border-radius: 6px; border: 2px solid transparent;
+    cursor: pointer; transition: all .2s ease; color: rgba(255,255,255,.4);
+  }
+  .btn-brand.active { color: #fff !important; border-color: rgba(255,255,255,.6) !important; filter: brightness(1) !important; box-shadow: 0 0 20px -4px; }
+  .btn-brand:not(.active) { filter: brightness(.55); }
+  .btn-brand:not(.active):hover { filter: brightness(.8); color: rgba(255,255,255,.75) !important; }
+  .btn-todas {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+    padding: 8px 18px; border-radius: 6px; border: 2px solid var(--accent);
+    cursor: pointer; transition: all .2s ease;
+    background: transparent; color: var(--accent);
+  }
+  .btn-todas.active { background: var(--accent); color: #000; box-shadow: 0 0 20px -4px var(--accent); }
+  .btn-todas:not(.active):hover { background: rgba(0,194,255,.12); }
+
+  /* KPI CARDS */
+  .kpi-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 10px; margin-bottom: 24px; }
+  @media(max-width:900px){ .kpi-grid { grid-template-columns: repeat(3,1fr); } }
+  .kpi-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+    position: relative; overflow: hidden;
+    animation: fadeUp .4s ease both;
+  }
+  .kpi-label { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .kpi-value { font-family:'Barlow Condensed',sans-serif; font-size:26px; font-weight:700; color:#fff; line-height:1; transition:color .3s; }
+  .kpi-sub { font-size:10px; color:var(--muted); margin-top:4px; }
+
+  /* TABS */
+  .controls { display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .tab-bar { display:flex; gap:4px; }
+  .tab-btn {
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:12px; font-weight:700; letter-spacing:.8px; text-transform:uppercase;
+    padding:7px 16px; border-radius:6px; border:1px solid var(--border);
+    cursor:pointer; transition:all .2s; background:transparent; color:var(--muted);
+  }
+  .tab-btn.active { background:var(--accent); color:#000; border-color:var(--accent); }
+
+  /* CHARTS */
+  .charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+  @media(max-width:800px){ .charts-grid { grid-template-columns:1fr; } }
+  .chart-panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+  .chart-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .chart-title { font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--muted); }
+  .chart-title span { color:var(--accent); margin-right:6px; }
+  .chart-tag { font-size:10px; font-weight:600; letter-spacing:.6px; padding:3px 8px; border-radius:4px; background:var(--surf2); color:var(--muted); text-transform:uppercase; }
+
+  /* TABLE */
+  .table-panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .table-hdr { padding:14px 20px; border-bottom:1px solid var(--border); }
+  .table-hdr-title { font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--muted); }
+  .table-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  thead tr { background:var(--surf2); }
+  thead th { padding:9px 14px; text-align:right; font-size:10px; font-weight:600; letter-spacing:.8px; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
+  thead th:first-child { text-align:left; min-width:120px; }
+  tbody tr { border-bottom:1px solid var(--border); transition:background .15s; }
+  tbody tr:hover { background:rgba(255,255,255,.03); }
+  tbody tr.row-active { background:rgba(0,194,255,.07) !important; }
+  tbody tr.row-total { background:rgba(0,194,255,.05) !important; border-top:1px solid rgba(0,194,255,.2); }
+  tbody td { padding:8px 14px; text-align:right; color:var(--text); white-space:nowrap; }
+  tbody td:first-child { text-align:left; }
+  .brand-cell { font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; letter-spacing:.5px; }
+  .val-hi   { color:#fff; font-weight:600; }
+  .val-gold { color:var(--gold); font-weight:600; }
+  .val-grn  { color:var(--green); font-weight:600; }
+
+  /* FOOTER */
+  .footer { margin-top:40px; padding-top:16px; border-top:1px solid var(--border); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+  .footer span { font-size:11px; color:var(--muted); letter-spacing:.5px; }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ── LOGIN OVERLAY ─────────────────────────────────── */
+  #login-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(7,13,20,.97);
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+  }
+  #login-overlay.hidden { display: none; }
+  .login-box {
+    background: #0d1a27;
+    border: 1px solid #1e3448;
+    border-radius: 16px;
+    padding: 44px 48px;
+    width: 340px;
+    text-align: center;
+    box-shadow: 0 24px 80px rgba(0,0,0,.6);
+  }
+  .login-logo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px; font-weight: 800;
+    color: #fff; letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .login-logo span { color: #00c2ff; }
+  .login-sub {
+    font-size: 11px; color: #4a6a84;
+    letter-spacing: .6px; text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+  .login-label {
+    font-size: 11px; color: #4a6a84;
+    text-align: left; margin-bottom: 8px;
+    letter-spacing: .4px; text-transform: uppercase;
+  }
+  .login-input {
+    width: 100%; background: #070d14;
+    border: 1px solid #1e3448; border-radius: 8px;
+    padding: 12px 16px; font-size: 15px;
+    color: #c8dff0; font-family: 'DM Sans', sans-serif;
+    letter-spacing: 3px; text-align: center;
+    outline: none; transition: border-color .2s;
+    margin-bottom: 12px;
+  }
+  .login-input:focus { border-color: #00c2ff; }
+  .login-input.error { border-color: #e63946; animation: shake .3s; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)}
+  }
+  .login-btn {
+    width: 100%; background: #00c2ff;
+    border: none; border-radius: 8px;
+    padding: 12px; font-size: 13px; font-weight: 700;
+    color: #070d14; cursor: pointer; letter-spacing: .6px;
+    text-transform: uppercase; font-family: 'Barlow Condensed', sans-serif;
+    transition: background .2s, transform .1s;
+  }
+  .login-btn:hover { background: #33cfff; }
+  .login-btn:active { transform: scale(.98); }
+  .login-error {
+    font-size: 11px; color: #e63946;
+    margin-top: 10px; min-height: 16px;
+    letter-spacing: .3px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN OVERLAY ───────────────────────────────────────── -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">🐾 <span>MARS</span></div>
+    <div class="login-sub">Vendor Dashboard · Acesso restrito</div>
+    <div class="login-label">Código de acesso</div>
+    <input id="login-input" class="login-input" type="password"
+           placeholder="••••••" maxlength="20"
+           onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Entrar</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<script>
+  function doLogin() {
+    const input = document.getElementById('login-input');
+    const error = document.getElementById('login-error');
+    if (input.value.trim().toLowerCase() === 'effem') {
+      document.getElementById('login-overlay').classList.add('hidden');
+    } else {
+      input.classList.add('error');
+      error.textContent = 'Código incorreto. Tente novamente.';
+      setTimeout(() => { input.classList.remove('error'); input.value = ''; }, 700);
+    }
+  }
+  // Focus input on load
+  window.addEventListener('load', () => document.getElementById('login-input').focus());
+</script>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <h1>🐾 <span>Mars</span></h1>
+      <p>Brand Performance · TGMV LC · TSI · GMV Semanal</p>
+    </div>
+    <div id="brandBadge" class="brand-badge">WHISKAS</div>
+  </div>
+
+  <!-- BRAND BUTTONS -->
+  <div class="btn-row" id="btnRow">
+    <button class="btn-todas" id="btnTodas" onclick="selectTodas()">⊕ TODAS</button>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <!-- TABS -->
+  <div class="controls">
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="setView('overview')">Visão Geral</button>
+      <button class="tab-btn" onclick="setView('weekly')">Evolução Semanal</button>
+      <button class="tab-btn" onclick="setView('table')">Tabela Completa</button>
+      <button class="tab-btn" onclick="setView('stock')">📦 Estoque</button>
+    </div>
+  </div>
+
+  <!-- VIEW: OVERVIEW -->
+  <div id="viewOverview">
+    <div class="charts-grid">
+      <div class="chart-panel">
+        <div class="chart-header">
+          <div class="chart-title"><span>▸</span> TGMV LC — Mensal</div>
+          <span class="chart-tag">R$</span>
+        </div>
+        <div style="position:relative;height:260px"><canvas id="chartTGMV"></canvas></div>
+      </div>
+      <div class="chart-panel">
+        <div class="chart-header">
+          <div class="chart-title"><span>▸</span> TSI — Mensal</div>
+          <span class="chart-tag">unidades</span>
+        </div>
+        <div style="position:relative;height:260px"><canvas id="chartTSI"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW: WEEKLY -->
+  <div id="viewWeekly" style="display:none">
+    <div class="chart-panel">
+      <div class="chart-header">
+        <div class="chart-title"><span>▸</span> GMV Semanal — TOP 10 BRAND</div>
+        <span class="chart-tag">SEM 47 → SEM 10</span>
+      </div>
+      <div style="position:relative;height:380px"><canvas id="chartWeekly"></canvas></div>
+    </div>
+  </div>
+
+  <!-- VIEW: TABLE -->
+  <div id="viewTable" style="display:none">
+    <div class="table-panel">
+      <div class="table-hdr"><span class="table-hdr-title">📊 Dados Consolidados por Marca</span></div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Marca</th>
+              <th>TGMV Nov</th><th>TGMV Dez</th><th>TGMV Jan</th><th>TGMV Fev</th>
+              <th>TGMV MTD</th><th>TGMV YTD</th>
+              <th>TSI Nov</th><th>TSI Dez</th><th>TSI Jan</th><th>TSI Fev</th><th>TSI YTD</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW: STOCK -->
+  <div id="viewStock" style="display:none">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px" id="stockKpiGrid"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="chart-panel">
+        <div class="chart-header">
+          <div class="chart-title"><span>▸</span> STK Saleable por Marca</div>
+          <span class="chart-tag">unidades</span>
+        </div>
+        <div style="position:relative;height:260px"><canvas id="chartStock"></canvas></div>
+      </div>
+      <div class="chart-panel">
+        <div class="chart-header">
+          <div class="chart-title"><span>▸</span> Aging &gt; 60d por Marca</div>
+          <span class="chart-tag">unidades</span>
+        </div>
+        <div style="position:relative;height:260px"><canvas id="chartAging"></canvas></div>
+      </div>
+    </div>
+    <div class="table-panel">
+      <div class="table-hdr"><span class="table-hdr-title">📦 Top SKUs por Estoque Saleable</span></div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th style="text-align:center;min-width:30px">#</th>
+            <th style="text-align:left">Marca</th>
+            <th style="text-align:left">Produto</th>
+            <th>STK Saleable</th>
+            <th>Aging &gt; 60d</th>
+            <th>% Aging</th>
+          </tr></thead>
+          <tbody id="stockTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span id="footerTxt">Marca ativa: WHISKAS</span>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// DATA — extraído da planilha 2026-03-10
+// ════════════════════════════════════════════════════════════
+const TGMV = {
+  WHISKAS:    {Nov:27058, Dez:87007, Jan:60504, Fev:116075, MTD:31006, YTD:207585},
+  PEDIGREE:   {Nov:12106, Dez:49889, Jan:52717, Fev:81459, MTD:5722, YTD:139898},
+  DREAMIES:   {Nov:4915, Dez:42907, Jan:30902, Fev:44377, MTD:3614, YTD:78894},
+  SHEBA:      {Nov:1297, Dez:6858, Jan:15119, Fev:10957, MTD:3222, YTD:29299},
+  OPTIMUM:    {Nov:320, Dez:5725, Jan:18145, Fev:27499, MTD:6748, YTD:52392},
+  CHAMP:      {Nov:43, Dez:581, Jan:2773, Fev:6791, MTD:117, YTD:9682},
+  KITEKAT:    {Nov:0, Dez:0, Jan:114, Fev:1150, MTD:1211, YTD:2476},
+  CESAR:      {Nov:0, Dez:148, Jan:3883, Fev:6469, MTD:1646, YTD:11999},
+};
+const TSI = {
+  WHISKAS:    {'Nov/25':730, 'Dez/25':3263, 'Jan/26':2554, 'Fev/26':2822, YTD:6165},
+  PEDIGREE:   {'Nov/25':443, 'Dez/25':1581, 'Jan/26':1075, 'Fev/26':1789, YTD:3093},
+  DREAMIES:   {'Nov/25':442, 'Dez/25':3709, 'Jan/26':3040, 'Fev/26':3585, YTD:6907},
+  SHEBA:      {'Nov/25':69, 'Dez/25':355, 'Jan/26':838, 'Fev/26':101, YTD:973},
+  OPTIMUM:    {'Nov/25':5, 'Dez/25':109, 'Jan/26':250, 'Fev/26':414, YTD:770},
+  CHAMP:      {'Nov/25':3, 'Dez/25':32, 'Jan/26':75, 'Fev/26':112, YTD:188},
+  KITEKAT:    {'Nov/25':0, 'Dez/25':0, 'Jan/26':1, 'Fev/26':11, YTD:23},
+  CESAR:      {'Nov/25':0, 'Dez/25':1, 'Jan/26':26, 'Fev/26':41, YTD:80},
+};
+const TOP = {
+  WHISKAS:    {Sem47:1332,  Sem48:21769,  Sem49:16919,  Sem50:14756,  Sem51:26205,  Sem52:23216,  Sem1:3646,  Sem2:194,  Sem3:113,  Sem4:521,  Sem5:2368,  Sem6:192,  Sem7:9021,  Sem8:9753,  Sem9:17237,  Sem10:24996},
+  PEDIGREE:   {Sem47:602,  Sem48:9986,  Sem49:8398,  Sem50:5705,  Sem51:12055,  Sem52:17973,  Sem1:11512,  Sem2:11060,  Sem3:8786,  Sem4:10577,  Sem5:18058,  Sem6:19106,  Sem7:28337,  Sem8:20742,  Sem9:13353,  Sem10:4619},
+  DREAMIES:   {Sem47:49,  Sem48:3989,  Sem49:5684,  Sem50:3628,  Sem51:12149,  Sem52:11826,  Sem1:12323,  Sem2:10163,  Sem3:2344,  Sem4:0,  Sem5:0,  Sem6:9580,  Sem7:12839,  Sem8:10721,  Sem9:12551,  Sem10:3564},
+  SHEBA:      {Sem47:0,  Sem48:805,  Sem49:1490,  Sem50:2231,  Sem51:2812,  Sem52:373,  Sem1:148,  Sem2:0,  Sem3:296,  Sem4:0,  Sem5:148,  Sem6:0,  Sem7:592,  Sem8:436,  Sem9:1542,  Sem10:2782},
+  OPTIMUM:    {Sem47:0,  Sem48:198,  Sem49:405,  Sem50:222,  Sem51:1761,  Sem52:2410,  Sem1:60,  Sem2:481,  Sem3:60,  Sem4:175,  Sem5:177,  Sem6:302,  Sem7:677,  Sem8:674,  Sem9:1574,  Sem10:4936},
+  CHAMP:      {Sem47:0,  Sem48:0,  Sem49:123,  Sem50:0,  Sem51:48,  Sem52:290,  Sem1:371,  Sem2:565,  Sem3:394,  Sem4:430,  Sem5:1178,  Sem6:612,  Sem7:922,  Sem8:1985,  Sem9:3266,  Sem10:117},
+  KITEKAT:    {Sem47:0,  Sem48:0,  Sem49:0,  Sem50:0,  Sem51:0,  Sem52:0,  Sem1:0,  Sem2:0,  Sem3:0,  Sem4:0,  Sem5:114,  Sem6:240,  Sem7:0,  Sem8:0,  Sem9:911,  Sem10:1211},
+  CESAR:      {Sem47:0,  Sem48:0,  Sem49:0,  Sem50:0,  Sem51:0,  Sem52:148,  Sem1:0,  Sem2:592,  Sem3:444,  Sem4:1628,  Sem5:1219,  Sem6:2026,  Sem7:1876,  Sem8:1490,  Sem9:1070,  Sem10:1288},
+};
+
+const STOCK_BY_BRAND = {
+  WHISKAS:    {stk:982,  aging:405,  skus:35},
+  PEDIGREE:   {stk:450,  aging:252,  skus:46},
+  DREAMIES:   {stk:1062,  aging:1061,  skus:9},
+  SHEBA:      {stk:97,  aging:97,  skus:8},
+  OPTIMUM:    {stk:618,  aging:523,  skus:23},
+  CHAMP:      {stk:1,  aging:1,  skus:8},
+  KITEKAT:    {stk:70,  aging:70,  skus:7},
+  CESAR:      {stk:43,  aging:43,  skus:7},
+};
+const TOP_SKUS = [
+  {brand:'DREAMIES', title:'Dreamies Seca Gato Adulto Carne Premium 40g Unidad', stk:553, aging:553},
+  {brand:'DREAMIES', title:'Dreamies Gato Adulto Seca Queijo 40g Super Premium', stk:303, aging:303},
+  {brand:'DREAMIES', title:'Dreamies Gato Adulto Seca Carne 40g Uni', stk:205, aging:205},
+  {brand:'WHISKAS', title:'Alimento Whiskas Adultos Ração Seca Para Gatos Whiskas ', stk:200, aging:0},
+  {brand:'WHISKAS', title:'Whiskas Seca Gato Adulto Peixe Premium 2.7kg', stk:159, aging:0},
+  {brand:'WHISKAS', title:'Pack Ração Úmida Whiskas Sachê Frango/ Molho 85g - 40 U', stk:150, aging:150},
+  {brand:'OPTIMUM', title:'Ração Seca Optimum Adultos Pequenas E Minis 1kg Frango/', stk:132, aging:132},
+  {brand:'WHISKAS', title:'Alimento Úmido Whiskas Para Gato Adulto Sabor Patê De F', stk:124, aging:0},
+  {brand:'PEDIGREE', title:'Alimento Pedigree Cães Adultos Raças Pequenas Para Cão ', stk:122, aging:0},
+  {brand:'PEDIGREE', title:'Pedigree Petisco Cachorro Adulto Média 500g Biscrok Mul', stk:119, aging:119},
+  {brand:'OPTIMUM', title:'Ração Seca Optimum Filhotes Raças Pequenas Mini Frango ', stk:118, aging:118},
+  {brand:'OPTIMUM', title:'Ração Úmida Optimum Sachê Gatos Adul Sabor Salmão 85g 4', stk:99, aging:99},
+  {brand:'WHISKAS', title:'Alimento Whiskas Premium Ração Whiskas Carne Gatos Cast', stk:94, aging:94},
+  {brand:'SHEBA', title:'Sheba Petisco Cremoso Para Gatos Sabor Atum 2 Unidades ', stk:75, aging:75},
+  {brand:'WHISKAS', title:'Pack Ração Úmida Whiskas Sachê Cordeiro 85g 40 Und', stk:73, aging:73},
+];
+
+const BRANDS    = ['WHISKAS','PEDIGREE','DREAMIES','SHEBA','OPTIMUM','CHAMP','KITEKAT','CESAR'];
+const TGMV_KEYS = ['Nov','Dez','Jan','Fev'];
+const TSI_KEYS  = ['Nov/25','Dez/25','Jan/26','Fev/26'];
+const WEEK_KEYS = ['Sem47','Sem48','Sem49','Sem50','Sem51','Sem52','Sem1','Sem2','Sem3','Sem4','Sem5','Sem6','Sem7','Sem8','Sem9','Sem10'];
+const WEEK_DATES= ['16.11-22.11','23.11-29.11','30.11-06.12','07.12-13.12','14.12-20.12','21.12-27.12','28.12-03.01','04.01-10.01','11.01-17.01','18.01-24.01','25.01-31.01','01.02-07.02','08.02-14.02','15.02-21.02','22.02-28.02','01.03-07.03'];
+const YEAR_BREAK = 5; // entre Sem52 (idx 5) e Sem1 (idx 6)
+
+const COLORS = {
+  WHISKAS:'#e63946', PEDIGREE:'#457b9d', DREAMIES:'#2a9d8f',
+  SHEBA:'#e9c46a',   OPTIMUM:'#f4a261',  CHAMP:'#8338ec',
+  KITEKAT:'#06d6a0', CESAR:'#fb8500',
+};
+
+// TODAS — consolidado
+function sumKeys(keys, src) {
+  const o = {};
+  keys.forEach(k => { o[k] = BRANDS.reduce((s,b) => s + (src[b]?.[k] || 0), 0); });
+  return o;
+}
+const TGMV_ALL = sumKeys([...TGMV_KEYS,'MTD','YTD'], TGMV);
+const TSI_ALL  = sumKeys([...TSI_KEYS,'YTD'], TSI);
+const TOP_ALL  = sumKeys(WEEK_KEYS, TOP);
+
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+let sel     = 'WHISKAS';
+let isTodas = false;
+let view    = 'overview';
+let cTGMV, cTSI, cWeekly;
+
+// ════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════
+const fmtR = n => 'R$ ' + Math.round(n).toLocaleString('pt-BR');
+const fmtN = n => Math.round(n).toLocaleString('pt-BR');
+const fmtK = n => n >= 1000 ? 'R$ ' + (n/1000).toFixed(1) + 'k' : fmtR(n);
+function rgba(hex, a) {
+  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// ════════════════════════════════════════════════════════════
+// BUTTONS
+// ════════════════════════════════════════════════════════════
+function buildButtons() {
+  const row = document.getElementById('btnRow');
+  BRANDS.forEach(b => {
+    const btn = document.createElement('button');
+    btn.className = 'btn-brand';
+    btn.id = 'btn_' + b;
+    btn.textContent = b;
+    btn.style.background = COLORS[b];
+    btn.onclick = () => selectBrand(b);
+    row.appendChild(btn);
+  });
+}
+function refreshBtns() {
+  BRANDS.forEach(b => document.getElementById('btn_' + b)?.classList.toggle('active', !isTodas && b === sel));
+  document.getElementById('btnTodas').classList.toggle('active', isTodas);
+}
+
+// ════════════════════════════════════════════════════════════
+// SELECT
+// ════════════════════════════════════════════════════════════
+function selectBrand(brand) {
+  isTodas = false; sel = brand;
+  refreshBtns();
+  const badge = document.getElementById('brandBadge');
+  badge.textContent = brand;
+  badge.style.cssText = `background:${rgba(COLORS[brand],.18)};color:${COLORS[brand]};border-color:${COLORS[brand]}`;
+  document.getElementById('footerTxt').textContent = 'Marca ativa: ' + brand;
+  updateAll();
+}
+function selectTodas() {
+  isTodas = true;
+  refreshBtns();
+  const badge = document.getElementById('brandBadge');
+  badge.textContent = 'TODAS AS MARCAS';
+  badge.style.cssText = `background:${rgba('#00c2ff',.15)};color:#00c2ff;border-color:#00c2ff`;
+  document.getElementById('footerTxt').textContent = 'Visualizando: TODAS AS MARCAS (consolidado)';
+  updateAll();
+}
+function updateAll() { updateKPIs(); updateCharts(); updateTable(); }
+
+// ════════════════════════════════════════════════════════════
+// KPIs
+// ════════════════════════════════════════════════════════════
+function buildKPIs() {
+  const grid = document.getElementById('kpiGrid');
+  const defs = [
+    {key:'Nov',label:'TGMV Nov'},{key:'Dez',label:'TGMV Dez'},
+    {key:'Jan',label:'TGMV Jan'},{key:'Fev',label:'TGMV Fev'},
+    {key:'MTD',label:'TGMV MTD',special:true},{key:'YTD',label:'TGMV YTD',special:true},
+  ];
+  defs.forEach((d,i) => {
+    const card = document.createElement('div');
+    card.className = 'kpi-card';
+    card.id = 'card_' + d.key;
+    card.style.animationDelay = (i*.07)+'s';
+    // top accent bar
+    const bar = document.createElement('div');
+    bar.id = 'bar_' + d.key;
+    bar.style.cssText = 'position:absolute;top:0;left:0;right:0;height:2px;transition:background .3s';
+    card.appendChild(bar);
+    card.innerHTML += `<div class="kpi-label">${d.label}</div>
+      <div class="kpi-value" id="kv_${d.key}">—</div>
+      <div class="kpi-sub" id="ks_${d.key}"></div>`;
+    grid.appendChild(card);
+  });
+}
+function updateKPIs() {
+  const tgmv = isTodas ? TGMV_ALL : (TGMV[sel] || {});
+  const tsi  = isTodas ? TSI_ALL  : (TSI[sel]  || {});
+  const accent       = isTodas ? '#00c2ff' : (COLORS[sel] || '#00c2ff');
+  const specialColor = isTodas ? '#06d6a0' : '#ffc947';
+  const tsiMap = {Nov:'Nov/25',Dez:'Dez/25',Jan:'Jan/26',Fev:'Fev/26',MTD:null,YTD:'YTD'};
+
+  ['Nov','Dez','Jan','Fev','MTD','YTD'].forEach(k => {
+    const isSpecial = k === 'MTD' || k === 'YTD';
+    const vEl = document.getElementById('kv_' + k);
+    const sEl = document.getElementById('ks_' + k);
+    const barEl = document.getElementById('bar_' + k);
+    if (vEl) { vEl.textContent = fmtK(tgmv[k] || 0); vEl.style.color = isSpecial ? specialColor : '#fff'; }
+    if (barEl) barEl.style.background = isSpecial ? specialColor : accent;
+    const tk = tsiMap[k];
+    if (sEl) sEl.textContent = tk && tsi[tk] !== undefined ? 'TSI: ' + fmtN(tsi[tk]) + ' un.' : '';
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// CHARTS
+// ════════════════════════════════════════════════════════════
+function baseOpts() {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { labels:{ color:'#4a6a84', font:{family:'DM Sans',size:11}, boxWidth:12, padding:14 } },
+      tooltip: { backgroundColor:'#0d1a27', borderColor:'#1e3448', borderWidth:1, titleColor:'#c8dff0', bodyColor:'#c8dff0', padding:10, cornerRadius:8 }
+    },
+    scales: {
+      x: { grid:{color:'rgba(30,52,72,.5)'}, ticks:{color:'#4a6a84',font:{family:'DM Sans',size:10},maxRotation:0} },
+      y: { grid:{color:'rgba(30,52,72,.5)'}, ticks:{color:'#4a6a84',font:{family:'DM Sans',size:10}} }
+    }
+  };
+}
+
+// Plugin inline: datas abaixo dos ticks + linha de virada de ano
+const weekPlugin = {
+  id: 'weekPlugin',
+  afterDraw(chart) {
+    if (chart.canvas.id !== 'chartWeekly') return;
+    const xS = chart.scales.x, yS = chart.scales.y;
+    if (!xS || !yS) return;
+    const ctx = chart.ctx;
+    ctx.save();
+
+    // Sub-date labels
+    WEEK_KEYS.forEach((_, i) => {
+      const x = xS.getPixelForValue(i);
+      ctx.font = '400 8px "DM Sans",sans-serif';
+      ctx.fillStyle = '#2e4a62';
+      ctx.textAlign = 'center';
+      ctx.fillText(WEEK_DATES[i], x, xS.bottom + 18);
+    });
+
+    // Linha tracejada de virada de ano (entre idx 5 e 6)
+    const x5  = xS.getPixelForValue(YEAR_BREAK);
+    const x6  = xS.getPixelForValue(YEAR_BREAK + 1);
+    const xBr = (x5 + x6) / 2;
+    ctx.beginPath();
+    ctx.setLineDash([5,4]);
+    ctx.strokeStyle = 'rgba(0,194,255,.28)';
+    ctx.lineWidth = 1.5;
+    ctx.moveTo(xBr, yS.top);
+    ctx.lineTo(xBr, xS.top);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Badge 2025 → 2026
+    const bw=74, bh=17, by=yS.top+6;
+    ctx.fillStyle = 'rgba(0,194,255,.1)';
+    ctx.beginPath();
+    if (ctx.roundRect) { ctx.roundRect(xBr-bw/2, by, bw, bh, 4); } else { ctx.rect(xBr-bw/2, by, bw, bh); }
+    ctx.fill();
+    ctx.font = '600 8.5px "DM Sans",sans-serif';
+    ctx.fillStyle = 'rgba(0,194,255,.7)';
+    ctx.textAlign = 'center';
+    ctx.fillText('2025  ›  2026', xBr, by+12);
+    ctx.restore();
+  }
+};
+
+function buildCharts() {
+  // TGMV
+  const to = baseOpts();
+  to.scales.y.ticks.callback = v => 'R$ '+(v>=1000?(v/1000).toFixed(0)+'k':v);
+  to.plugins.tooltip.callbacks = { label: c => ` ${c.dataset.label}: ${fmtR(c.parsed.y)}` };
+  cTGMV = new Chart(document.getElementById('chartTGMV'), {
+    type:'line', data:{labels:TGMV_KEYS, datasets:[]}, options:to
+  });
+
+  // TSI
+  const so = baseOpts();
+  so.scales.y.ticks.callback = v => v>=1000?(v/1000).toFixed(1)+'k':v;
+  so.plugins.tooltip.callbacks = { label: c => ` ${c.dataset.label}: ${fmtN(c.parsed.y)} un.` };
+  cTSI = new Chart(document.getElementById('chartTSI'), {
+    type:'bar', data:{labels:TSI_KEYS, datasets:[]}, options:so
+  });
+
+  // WEEKLY
+  const wo = baseOpts();
+  wo.scales.y.ticks.callback = v => v>=1000?'R$ '+(v/1000).toFixed(0)+'k':'R$ '+v;
+  wo.scales.x.ticks.padding = 4;
+  wo.layout = { padding:{bottom:8} };
+  wo.plugins.tooltip.callbacks = {
+    title: items => { const i=items[0].dataIndex; return WEEK_KEYS[i]+'  ·  '+WEEK_DATES[i]; },
+    label: c => ` ${c.dataset.label}: ${fmtR(c.parsed.y)}`
+  };
+  cWeekly = new Chart(document.getElementById('chartWeekly'), {
+    type:'line', data:{labels:WEEK_KEYS, datasets:[]}, options:wo, plugins:[weekPlugin]
+  });
+
+  updateCharts();
+}
+
+function makeLine(brand, data, keys, isMain, fade) {
+  const col = COLORS[brand];
+  return {
+    label: brand,
+    data: keys.map(k => data[brand]?.[k] ?? 0),
+    borderColor: isMain ? col : rgba(col, fade ? .22 : .55),
+    backgroundColor: rgba(col, isMain ? .12 : .02),
+    borderWidth: isMain ? 3 : 1,
+    pointRadius: isMain ? 5 : 1.5,
+    pointHoverRadius: 7,
+    tension: .35, fill: isMain && fade,
+  };
+}
+function makeBar(brand, data, keys, isMain, fade) {
+  const col = COLORS[brand];
+  return {
+    label: brand,
+    data: keys.map(k => data[brand]?.[k] ?? 0),
+    backgroundColor: rgba(col, isMain ? .8 : (fade ? .2 : .45)),
+    borderColor: isMain ? col : 'transparent',
+    borderWidth: isMain ? 1.5 : 0,
+    borderRadius: 4, borderSkipped: false,
+  };
+}
+
+function updateCharts() {
+  if (isTodas) {
+    // TGMV: todas marcas + linha TOTAL
+    cTGMV.data.datasets = [
+      ...BRANDS.map(b => makeLine(b, TGMV, TGMV_KEYS, false, false)),
+      { label:'TOTAL', data:TGMV_KEYS.map(k=>TGMV_ALL[k]),
+        borderColor:'#00c2ff', backgroundColor:rgba('#00c2ff',.08),
+        borderWidth:3, borderDash:[6,3], pointRadius:5, pointHoverRadius:8,
+        tension:.35, fill:false, order:-1 },
+    ];
+    cTGMV.update('active');
+
+    // TSI: barras + linha TOTAL
+    cTSI.data.datasets = [
+      ...BRANDS.map(b => makeBar(b, TSI, TSI_KEYS, false, false)),
+      { label:'TOTAL', data:TSI_KEYS.map(k=>TSI_ALL[k]),
+        type:'line', borderColor:'#00c2ff', backgroundColor:'transparent',
+        borderWidth:2.5, borderDash:[5,3], pointRadius:4, tension:.35, order:-1 },
+    ];
+    cTSI.update('active');
+
+    // WEEKLY: todas finas + TOTAL em destaque
+    cWeekly.data.datasets = [
+      ...BRANDS.map(b => ({
+        label:b, data:WEEK_KEYS.map(k=>TOP[b]?.[k]??0),
+        borderColor:rgba(COLORS[b],.45), backgroundColor:rgba(COLORS[b],.02),
+        borderWidth:1.5, pointRadius:2, pointHoverRadius:5, tension:.35, fill:false,
+      })),
+      { label:'TOTAL', data:WEEK_KEYS.map(k=>TOP_ALL[k]),
+        borderColor:'#00c2ff', backgroundColor:rgba('#00c2ff',.09),
+        borderWidth:4, pointRadius:5, pointHoverRadius:9,
+        tension:.35, fill:true, order:-1 },
+    ];
+    cWeekly.update('active');
+
+  } else {
+    // Marca selecionada em destaque
+    cTGMV.data.datasets = BRANDS.map(b => makeLine(b, TGMV, TGMV_KEYS, b===sel, true));
+    cTGMV.update('active');
+
+    cTSI.data.datasets = BRANDS.map(b => makeBar(b, TSI, TSI_KEYS, b===sel, true));
+    cTSI.update('active');
+
+    cWeekly.data.datasets = BRANDS.map(b => ({
+      label:b, data:WEEK_KEYS.map(k=>TOP[b]?.[k]??0),
+      borderColor: b===sel ? COLORS[b] : rgba(COLORS[b],.2),
+      backgroundColor: rgba(COLORS[b], b===sel ? .12 : .01),
+      borderWidth: b===sel ? 3 : 1,
+      pointRadius: b===sel ? 5 : 1.5,
+      pointHoverRadius: 7,
+      tension:.35, fill: b===sel,
+    }));
+    cWeekly.update('active');
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// TABLE
+// ════════════════════════════════════════════════════════════
+function updateTable() {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  BRANDS.forEach(b => {
+    const t = TGMV[b]||{}, s = TSI[b]||{};
+    const isActive = !isTodas && b === sel;
+    const tr = document.createElement('tr');
+    if (isActive) tr.classList.add('row-active');
+    tr.innerHTML = `
+      <td class="brand-cell" style="color:${COLORS[b]}">${b}</td>
+      <td class="${isActive?'val-hi':''}">${fmtR(t.Nov||0)}</td>
+      <td class="${isActive?'val-hi':''}">${fmtR(t.Dez||0)}</td>
+      <td class="${isActive?'val-hi':''}">${fmtR(t.Jan||0)}</td>
+      <td class="${isActive?'val-hi':''}">${fmtR(t.Fev||0)}</td>
+      <td class="${isActive?'val-gold':''}">${fmtR(t.MTD||0)}</td>
+      <td class="${isActive?'val-gold':''}">${fmtR(t.YTD||0)}</td>
+      <td>${fmtN(s['Nov/25']||0)}</td>
+      <td>${fmtN(s['Dez/25']||0)}</td>
+      <td>${fmtN(s['Jan/26']||0)}</td>
+      <td>${fmtN(s['Fev/26']||0)}</td>
+      <td class="${isActive?'val-hi':''}">${fmtN(s.YTD||0)}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Linha TOTAL
+  const tr = document.createElement('tr');
+  tr.className = 'row-total';
+  const g = isTodas ? 'val-grn' : '';
+  tr.innerHTML = `
+    <td class="brand-cell" style="color:#00c2ff">⊕ TOTAL</td>
+    <td class="${g}">${fmtR(TGMV_ALL.Nov)}</td>
+    <td class="${g}">${fmtR(TGMV_ALL.Dez)}</td>
+    <td class="${g}">${fmtR(TGMV_ALL.Jan)}</td>
+    <td class="${g}">${fmtR(TGMV_ALL.Fev)}</td>
+    <td class="${g}">${fmtR(TGMV_ALL.MTD)}</td>
+    <td class="${g}">${fmtR(TGMV_ALL.YTD)}</td>
+    <td class="${g}">${fmtN(TSI_ALL['Nov/25'])}</td>
+    <td class="${g}">${fmtN(TSI_ALL['Dez/25'])}</td>
+    <td class="${g}">${fmtN(TSI_ALL['Jan/26'])}</td>
+    <td class="${g}">${fmtN(TSI_ALL['Fev/26'])}</td>
+    <td class="${g}">${fmtN(TSI_ALL.YTD)}</td>`;
+  tbody.appendChild(tr);
+}
+
+// ════════════════════════════════════════════════════════════
+// VIEW TABS
+// ════════════════════════════════════════════════════════════
+function buildStockView() {
+  // KPI cards
+  const grid = document.getElementById('stockKpiGrid');
+  const totalStk   = BRANDS.reduce((s,b)=>s+(STOCK_BY_BRAND[b]?.stk||0),0);
+  const totalAging = BRANDS.reduce((s,b)=>s+(STOCK_BY_BRAND[b]?.aging||0),0);
+  const totalSkus  = BRANDS.reduce((s,b)=>s+(STOCK_BY_BRAND[b]?.skus||0),0);
+  const agingPct   = totalStk>0 ? ((totalAging/totalStk)*100).toFixed(1)+'%' : '—';
+  const kpis = [
+    {label:'STK Saleable Total', value: fmtN(totalStk)+' un.', color:'#00c2ff'},
+    {label:'Aging > 60d Total',  value: fmtN(totalAging)+' un.', color:'#f4a261'},
+    {label:'% Aging',            value: agingPct, color: parseFloat(agingPct)>50?'#e63946':'#06d6a0'},
+    {label:'SKUs Ativos',        value: totalSkus+' SKUs', color:'#e9c46a'},
+  ];
+  grid.innerHTML = '';
+  kpis.forEach((k,i)=>{
+    const card = document.createElement('div');
+    card.className = 'kpi-card';
+    card.style.animationDelay=(i*.07)+'s';
+    card.innerHTML=`<div style="position:absolute;top:0;left:0;right:0;height:2px;background:${k.color}"></div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value" style="color:${k.color}">${k.value}</div>`;
+    grid.appendChild(card);
+  });
+
+  // Chart: STK Saleable
+  const ctxS = document.getElementById('chartStock');
+  if (ctxS._chart) ctxS._chart.destroy();
+  const sopts = baseOpts();
+  sopts.indexAxis = 'y';
+  sopts.scales.x.ticks.callback = v=>v>=1000?(v/1000).toFixed(1)+'k':v;
+  sopts.scales.y.grid = {display:false};
+  sopts.plugins.legend = {display:false};
+  sopts.plugins.tooltip.callbacks = {label:c=>` STK: ${fmtN(c.parsed.x)} un.`};
+  ctxS._chart = new Chart(ctxS, {
+    type:'bar',
+    data:{
+      labels: BRANDS,
+      datasets:[{
+        data: BRANDS.map(b=>STOCK_BY_BRAND[b]?.stk||0),
+        backgroundColor: BRANDS.map(b=>rgba(COLORS[b],.75)),
+        borderColor: BRANDS.map(b=>COLORS[b]),
+        borderWidth:2, borderRadius:4, borderSkipped:false,
+      }]
+    },
+    options: sopts
+  });
+
+  // Chart: Aging
+  const ctxA = document.getElementById('chartAging');
+  if (ctxA._chart) ctxA._chart.destroy();
+  const aopts = baseOpts();
+  aopts.indexAxis = 'y';
+  aopts.scales.x.ticks.callback = v=>v>=1000?(v/1000).toFixed(1)+'k':v;
+  aopts.scales.y.grid = {display:false};
+  aopts.plugins.legend = {display:false};
+  aopts.plugins.tooltip.callbacks = {label:c=>` Aging: ${fmtN(c.parsed.x)} un.`};
+  ctxA._chart = new Chart(ctxA, {
+    type:'bar',
+    data:{
+      labels: BRANDS,
+      datasets:[{
+        data: BRANDS.map(b=>STOCK_BY_BRAND[b]?.aging||0),
+        backgroundColor: BRANDS.map(b=>rgba('#f4a261',.6)),
+        borderColor: BRANDS.map(b=>'#f4a261'),
+        borderWidth:2, borderRadius:4, borderSkipped:false,
+      }]
+    },
+    options: aopts
+  });
+
+  // Table top SKUs
+  const tbody = document.getElementById('stockTableBody');
+  tbody.innerHTML='';
+  TOP_SKUS.forEach((s,i)=>{
+    const pct = s.stk>0 ? ((s.aging/s.stk)*100).toFixed(0)+'%' : '0%';
+    const pctNum = s.stk>0 ? (s.aging/s.stk)*100 : 0;
+    const pctColor = pctNum>=80?'#e63946':pctNum>=50?'#f4a261':'#06d6a0';
+    const tr = document.createElement('tr');
+    tr.innerHTML=`<td style="text-align:center;color:var(--muted)">${i+1}</td>
+      <td class="brand-cell" style="color:${COLORS[s.brand]||'#fff'}">${s.brand}</td>
+      <td style="color:var(--text);max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.title}</td>
+      <td class="val-hi">${fmtN(s.stk)}</td>
+      <td style="color:#f4a261">${fmtN(s.aging)}</td>
+      <td style="color:${pctColor};font-weight:600">${pct}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function setView(v) {
+  view = v;
+  const map = {overview:'viewOverview', weekly:'viewWeekly', table:'viewTable', stock:'viewStock'};
+  Object.entries(map).forEach(([k,id]) => document.getElementById(id).style.display = k===v?'':'none');
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const lbl = btn.textContent.toLowerCase();
+    btn.classList.toggle('active',
+      (v==='overview'&&lbl.includes('geral'))||
+      (v==='weekly'&&lbl.includes('seman'))||
+      (v==='table'&&lbl.includes('tabela'))||
+      (v==='stock'&&lbl.includes('estoque')));
+  });
+  if (v==='stock') buildStockView();
+  setTimeout(()=>{ cTGMV?.resize(); cTSI?.resize(); cWeekly?.resize(); }, 40);
+}
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+buildButtons();
+buildKPIs();
+buildCharts();
+selectBrand('WHISKAS');
+</script>
+</body>
+</html>
