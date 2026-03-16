@@ -435,7 +435,20 @@ function sumKeys(keys, src) {
   return o;
 }
 const TGMV_ALL = sumKeys([...TGMV_KEYS,'MTD','YTD'], TGMV);
+// Override totals com valor exato da planilha
+TGMV_ALL.MTD = 86871;
+TGMV_ALL.YTD = 570832;
+TGMV_ALL.Nov = 45740;
+TGMV_ALL.Dez = 193115;
+TGMV_ALL.Jan = 185347;
+TGMV_ALL.Fev = 298614;
 const TSI_ALL  = sumKeys([...TSI_KEYS,'YTD'], TSI);
+// Override TSI totals com valor exato da planilha
+TSI_ALL['Nov/25'] = 1692;
+TSI_ALL['Dez/25'] = 9050;
+TSI_ALL['Jan/26'] = 7868;
+TSI_ALL['Fev/26'] = 8976;
+TSI_ALL.YTD = 19424;
 const TOP_ALL  = sumKeys(WEEK_KEYS, TOP);
 
 // ════════════════════════════════════════════════════════════
